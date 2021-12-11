@@ -1,4 +1,7 @@
 close all;clear all;clc
+%Comment uncoment the air quality section and input the corrected values at
+%the first section to switch bwteen normal day and worst case senario
+%estimation
 %Cabin shaped greenhouse heat transfer numerical model
 %%Structural Analysis,make sure it won't collpase in event of extreme
 %%weather
@@ -17,15 +20,15 @@ L=6;    %Length of cabin
 W2=sqrt(2)*W/2;     %Roof WIdth
 H1=1.5;     %wall height
 H2=W/2;     %Roof Height
-Qr=300;     %Radiation per hour, a total of 6 hours
-Vwind=16;   %mean wind speed
-tdb=-20;     %outside temperature
+Qr=640;     %Radiation per hour, a total of 6 hours conventional 640 extreme 300
+Vwind=16;   %mean wind speed conventional 5.17 extreme 16
+tdb=-0.3;     %outside temperature conventional -0.3, extreme -20
 tsky=tdb-10;     %sky temperature
 T2=17;      %Inside max temperature
 T1=15;      %Inside minimum temperature
 tAVG=(T1+T2)/2;     %average inside temperature 
-tbt=-10;    %graound temperature below the platform
-lb=20;       %number of layers of polyethyane films
+tbt=0;    %graound temperature below the platform conventional 0,extreme -10
+lb=8;       %number of layers of polyethyane films
 la=1;   %Number of layers of polycarbonate board
 %%
 %Air properties
@@ -37,32 +40,40 @@ alpin=(2.074*10^(-5)-2.009*10^(-5))*(T1-15)/5+2.009*10^(-5);
 miuin=(1.825*10^(-5)-1.802*10^(-5))*(T1-15)/5+1.802*10^(-5);
 vin=(1.516*10^(-5)-1.47*10^(-5))*(T1-15)/5+1.47*10^(-5);
 
-%Exterior Convection Air at -20
-rouex=1.394;
-cpex=1005;
-Kex=0.02211;
-alpex=1.578*10^(-5);
-miuex=1.63*10^(-5);
-vex=1.169*10^(-5);
-prex=0.7408;
+% %Exterior Convection Air at -20
+% rouex=1.394;
+% cpex=1005;
+% Kex=0.02211;
+% alpex=1.578*10^(-5);
+% miuex=1.63*10^(-5);
+% vex=1.169*10^(-5);
+% prex=0.7408;
+% 
+% %Exterior Convection Air at -10
+% roubt=1.341;
+% cpbt=1006;
+% Kbt=0.02288;
+% alpbt=1.696*10^(-5);
+% miubt=1.68*10^(-5);
+% vbt=1.252*10^(-5);
+% prbt=0.7387;
 
 %Exterior Convection Air at -10
-roubt=1.341;
+rouex=1.341;
+cpex=1006;
+Kex=0.02288;
+alpex=1.696*10^(-5);
+miuex=1.68*10^(-5);
+vex=1.252*10^(-5);
+prex=0.7387;
+%Exterior Convection Air at 0
+roubt=1.292;
 cpbt=1006;
-Kbt=0.02288;
-alpbt=1.696*10^(-5);
-miubt=1.68*10^(-5);
-vbt=1.252*10^(-5);
-prbt=0.7387;
-
-% %Exterior Convection Air at 0
-% roubt=1.292;
-% cpbt=1006;
-% Kbt=0.02364;
-% alpbt=1.818*10^(-5);
-% miubt=1.729*10^(-5);
-% vbt=1.338*10^(-5);
-% prbt=0.7362;
+Kbt=0.02364;
+alpbt=1.818*10^(-5);
+miubt=1.729*10^(-5);
+vbt=1.338*10^(-5);
+prbt=0.7362;
 %%
 %Construction material
 %Polycarbonate Wall
@@ -330,7 +341,12 @@ Ksf=(Kex-Kbt)*(t1-tbt)/(tdb-tbt)+Kbt;
 Vsf=(vex-vbt)*(t1-tbt)/(tdb-tbt)+vbt;
 Prsf=(prex-prbt)*(t1-tbt)/(tdb-tbt)+prbt;
 Reb=Vwind*W/Vsf;
-Nub=0.258*(Reb)^0.588*Prsf^(1/3);
+%Roof
+if Reb<46000
+    Nub=0.258*(Reb)^0.588*Prsf^(1/3);
+else
+    Nub=0.026*(Reb)^0.839*Prsf^(1/3);
+end
 hb1=Nub*Ksf/(W)*W2*L;
 end
 function hc1=convcc1(t,tdb,Kex,Kbt,tbt,vex,vbt,L,prex,prbt,Vwind,H1)
@@ -339,7 +355,12 @@ Ksf=(Kex-Kbt)*(t1-tbt)/(tdb-tbt)+Kbt;
 Vsf=(vex-vbt)*(t1-tbt)/(tdb-tbt)+vbt;
 Prsf=(prex-prbt)*(t1-tbt)/(tdb-tbt)+prbt;
 Rec=Vwind*L/Vsf;
-Nuc=0.094*(Rec)^0.675*Prsf^(1/3);
+%Nontilted Wall 
+if Rec<32000 
+    Nuc=0.094*(Rec)^0.675*Prsf^(1/3);
+else
+    Nuc=0.026*(Rec)^0.839*Prsf^(1/3);
+end
 hc1=Nuc*Ksf/(L)*L*H1;
 end
 %Case 2 wind in front
@@ -357,7 +378,11 @@ for i=1: NumMesh
     Reatop(i)=Rea*((10-i)/10+0.05);
 end
 for i=1: NumMesh
-    Nutop(i)=0.094*(Reatop(i))^0.675*Prsf^(1/3);
+    if Reatop(i)<32000 
+        Nutop(i)=0.094*(Reatop(i))^0.675*Prsf^(1/3);
+    else
+        Nutop(i)=0.026*(Reatop(i))^0.839*Prsf^(1/3);   
+    end
     ha2=ha2+Nutop(i)*Ksf/(W*(10-i)/10+0.05)*(W*(10-i)/10+0.05)*H2/10;
 end
 Nua=0.094*(Rea)^0.675*Prsf^(1/3);
